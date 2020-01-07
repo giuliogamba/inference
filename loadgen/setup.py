@@ -68,7 +68,7 @@ mlperf_loadgen_sources = (mlperf_loadgen_sources_no_gen +
 mlperf_loadgen_module = Extension(
         "mlperf_loadgen",
         define_macros=[("MAJOR_VERSION", "0"), ("MINOR_VERSION", "5")],
-        include_dirs=[".", "../third_party/pybind/include"],
+        include_dirs=[".", "../third_party/pybind/include","/usr/local/include/python3.6/","/usr/local/include/python3.6/pybind11/"],
         sources=mlperf_loadgen_sources,
         depends=mlperf_loadgen_headers)
 
