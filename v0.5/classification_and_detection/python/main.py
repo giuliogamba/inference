@@ -23,6 +23,7 @@ import numpy as np
 import dataset
 import imagenet
 import coco
+import mnist
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("main")
@@ -58,6 +59,10 @@ SUPPORTED_DATASETS = {
     "coco-1200-tf":
         (coco.Coco, dataset.pre_process_coco_resnet34, coco.PostProcessCocoTf(),
          {"image_size": [1200, 1200, 3],"use_label_map": False}),
+    "mnist":
+        (mnist.MNIST, dataset.pre_process_lfc, dataset.PostProcessLog2,
+        {"image_size": [784]}),
+
 }
 
 # pre-defined command line options so simplify things. They are used as defaults and can be
@@ -157,6 +162,13 @@ SUPPORTED_PROFILES = {
         "data-format": "NHWC",
         "model-name": "ssd-resnet34",
     },
+    "lfcW1A1-pynq": {
+        "dataset": "mnist",
+        "inputs": "bin_file",
+        "outputs": "log2",
+        "backend": "pynq",
+        "model-name": "lfcW1A1",
+    }
 }
 
 SCENARIO_MAP = {
@@ -242,6 +254,9 @@ def get_backend(backend):
     elif backend == "tflite":
         from backend_tflite import BackendTflite
         backend = BackendTflite()
+    elif backend == "pynq":
+        from backend_pynq import BackendPynq
+        backend = BackendPynq()
     else:
         raise ValueError("unknown backend: " + backend)
     return backend

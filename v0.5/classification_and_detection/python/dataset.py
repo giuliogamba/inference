@@ -136,7 +136,8 @@ class PostProcessArgMax:
         results["good"] = self.good
         results["total"] = self.total
 
-
+class PostProcessLog2:
+    pass
 #
 # pre-processing
 #
@@ -255,3 +256,6 @@ def pre_process_coco_resnet34_tf(img, dims=None, need_transpose=False):
         img = img.transpose([2, 0, 1])
 
     return img
+
+def pre_process_lfc():
+    pass

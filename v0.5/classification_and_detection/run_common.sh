@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ $# -lt 1 ]; then
-    echo "usage: $0 tf|onnxruntime|pytorch|tflite [resnet50|mobilenet|ssd-mobilenet|ssd-resnet34] [cpu|gpu]"
+    echo "usage: $0 tf|onnxruntime|pytorch|tflite|pynq [resnet50|mobilenet|ssd-mobilenet|ssd-resnet34|lfcW1A1] [cpu|gpu|fpga]"
     exit 1
 fi
 if [ "x$DATA_DIR" == "x" ]; then
@@ -18,19 +18,35 @@ device="cpu"
 
 for i in $* ; do
     case $i in
-       tf|onnxruntime|tflite|pytorch) backend=$i; shift;;
-       cpu|gpu) device=$i; shift;;
+       tf|onnxruntime|tflite|pytorch|pynq) backend=$i; shift;;
+       cpu|gpu|fpga) device=$i; shift;;
        gpu) device=gpu; shift;;
-       resnet50|mobilenet|ssd-mobilenet|ssd-resnet34|ssd-resnet34-tf) model=$i; shift;;
+       resnet50|mobilenet|ssd-mobilenet|ssd-resnet34|ssd-resnet34-tf|lfcW1A1) model=$i; shift;;
     esac
 done
 
-if [ $device == "cpu" ] ; then
+if [[ ($device == "cpu") || ($device == "fpga") ]] ; then
     export CUDA_VISIBLE_DEVICES=""
+fi
+
+if [[ ("$BOARD" == "Pynq-Z1") || ("$BOARD" == "Pynq-Z2") ]]; then
+  PLATFORM="pynqZ1-Z2"  
+elif [[ ("$BOARD" == "Ultra96") ]]; then
+  PLATFORM="ultra96"
 fi
 
 name="$model-$backend"
 extra_args=""
+
+
+#
+# pynq
+#
+if [ $name == "lfcW1A1-pynq" ] ; then
+    model_path="$MODEL_DIR/$PLATFORM/$model-$PLATFORM.bit"
+    profile=lfcW1A1-pynq
+    extra_args="$extra_args --backend pynq"
+fi
 
 #
 # tensorflow
