@@ -6,6 +6,7 @@ __author__ = "Ussama Zahid"
 __copyright__ = "Copyright 2020, Xilinx"
 __email__ = "ussamaz@xilinx.com"
 
+import gzip
 import dataset
 
 class MNIST(dataset.Dataset):
