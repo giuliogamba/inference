@@ -9,7 +9,7 @@ __email__ = "ussamaz@xilinx.com"
 
 import pynq
 import backend
-from bnn import lfcWrapper, cnvWrapper
+from lfc_lg import lfcWrapper
 
 
 class BackendPynq(backend.Backend):
@@ -33,8 +33,8 @@ class BackendPynq(backend.Backend):
         model_path = model_path.replace('//', '/')
         if name.startswith('lfc'):
             self.model = lfcWrapper(network=name, bitstream_path=model_path, download_bitstream=True)
-        elif name.startswith('cnv'):
-            self.model = cnvWrapper(network=name, bitstream_path=model_path)
+        # elif name.startswith('cnv'):
+        #     self.model = cnvWrapper(network=name, bitstream_path=model_path)
         return self
 
     def predict(self, feed):
