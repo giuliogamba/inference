@@ -11,6 +11,8 @@ import time
 import cv2
 import numpy as np
 
+bitsPerExtMemWord=64
+
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("dataset")
@@ -35,6 +37,11 @@ def usleep(sec):
     else:
         time.sleep(sec)
 
+def paddedSize(inp, padTo):
+    if inp % padTo == 0: 
+        return inp
+    else:
+        return inp + padTo - (inp % padTo)
 
 class Dataset():
     def __init__(self):
@@ -69,7 +76,7 @@ class Dataset():
 
     def get_samples(self, id_list):
         data = np.array([self.image_list_inmemory[id] for id in id_list])
-        return data, self.label_list[id_list]
+        return data, [self.label_list[id] for id in id_list]
 
     def get_item_loc(self, id):
         raise NotImplementedError("Dataset:get_item_loc")
@@ -137,7 +144,34 @@ class PostProcessArgMax:
         results["total"] = self.total
 
 class PostProcessLog2:
-    pass
+    def __init__(self, offset=0):
+        self.offset = offset
+        self.good = 0
+        self.total = 0
+
+    def __call__(self, results, ids, expected=None, result_dict=None):
+        results = np.where(results==0, 1, results)
+        results = np.log2(results).astype(np.uint)        
+        processed_results = []
+        n = results.shape[0]
+        for idx in range(0, n):
+            result = results[idx] + self.offset
+            processed_results.append([result])
+            if result == expected[idx]:
+                self.good += 1
+        self.total += n
+        return processed_results
+
+    def add_results(self, results):
+        pass
+
+    def start(self):
+        self.good = 0
+        self.total = 0
+
+    def finalize(self, results, ds=False, output_dir=None):
+        results["good"] = self.good
+        results["total"] = self.total
 #
 # pre-processing
 #
@@ -257,5 +291,18 @@ def pre_process_coco_resnet34_tf(img, dims=None, need_transpose=False):
 
     return img
 
-def pre_process_lfc():
-    pass
+
+def binarizeAndPack(imgs):
+    values_paded = paddedSize(imgs.shape[1], bitsPerExtMemWord) - imgs.shape[1]
+    imgs = np.where(imgs < 0, False, True).astype(np.bool)
+    imgs = np.pad(imgs, ((0,0),(0,values_paded)), 'constant', constant_values=False)
+    binImages = np.packbits(imgs, axis=1, bitorder='little').view(np.uint64)#.reshape(-1,)
+    return binImages
+
+
+def pre_process_lfc(images):
+    images = 2*(images/255.)-1
+    binImages = binarizeAndPack(images)
+    return binImages
+
+

@@ -22,7 +22,7 @@ class BackendNull(backend.Backend):
     def image_format(self):
         return "NHWC"
 
-    def load(self, model_path, inputs=None, outputs=None):
+    def load(self, model_path, inputs=None, outputs=None, name=None):
         self.outputs = ["output"]
         self.inputs = ["input"]
         return self

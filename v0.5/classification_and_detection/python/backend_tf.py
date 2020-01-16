@@ -24,7 +24,7 @@ class BackendTensorflow(backend.Backend):
         # By default tensorflow uses NHWC (and the cpu implementation only does NHWC)
         return "NHWC"
 
-    def load(self, model_path, inputs=None, outputs=None):
+    def load(self, model_path, inputs=None, outputs=None, name=None):
         # there is no input/output meta data i the graph so it need to come from config.
         if not inputs:
             raise ValueError("BackendTensorflow needs inputs")

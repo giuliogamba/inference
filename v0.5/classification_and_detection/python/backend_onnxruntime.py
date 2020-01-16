@@ -24,7 +24,7 @@ class BackendOnnxruntime(backend.Backend):
         """image_format. For onnx it is always NCHW."""
         return "NCHW"
 
-    def load(self, model_path, inputs=None, outputs=None):
+    def load(self, model_path, inputs=None, outputs=None, name=None):
         """Load model and find input/outputs from the model file."""
         opt = rt.SessionOptions()
         # enable level 3 optimizations

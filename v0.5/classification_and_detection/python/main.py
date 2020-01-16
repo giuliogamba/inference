@@ -60,7 +60,7 @@ SUPPORTED_DATASETS = {
         (coco.Coco, dataset.pre_process_coco_resnet34, coco.PostProcessCocoTf(),
          {"image_size": [1200, 1200, 3],"use_label_map": False}),
     "mnist":
-        (mnist.MNIST, dataset.pre_process_lfc, dataset.PostProcessLog2,
+        (mnist.MNIST, dataset.pre_process_lfc, dataset.PostProcessLog2(),
         {"image_size": [784]}),
 
 }
@@ -442,7 +442,7 @@ def main():
                         use_cache=args.cache,
                         count=count, **kwargs)
     # load model to backend
-    model = backend.load(args.model, inputs=args.inputs, outputs=args.outputs)
+    model = backend.load(args.model, inputs=args.inputs, outputs=args.outputs, name=args.model_name)
     final_results = {
         "runtime": model.name(),
         "version": model.version(),
@@ -466,11 +466,11 @@ def main():
     count = ds.get_item_count()
 
     # warmup
-    ds.load_query_samples([0])
-    for _ in range(5):
-        img, _ = ds.get_samples([0])
-        _ = backend.predict({backend.inputs[0]: img})
-    ds.unload_query_samples(None)
+    # ds.load_query_samples([0])
+    # for _ in range(5):
+    #     img, _ = ds.get_samples([0])
+    #     _ = backend.predict({backend.inputs[0]: img})
+    # ds.unload_query_samples(None)
 
     scenario = SCENARIO_MAP[args.scenario]
     runner_map = {

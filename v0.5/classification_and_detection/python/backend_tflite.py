@@ -28,7 +28,7 @@ class BackendTflite(backend.Backend):
         # tflite is always NHWC
         return "NHWC"
 
-    def load(self, model_path, inputs=None, outputs=None):
+    def load(self, model_path, inputs=None, outputs=None, name=None):
         self.sess = interpreter_wrapper.Interpreter(model_path=model_path)
         self.sess.allocate_tensors()
         # keep input/output name to index mapping
