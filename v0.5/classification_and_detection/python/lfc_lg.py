@@ -190,7 +190,7 @@ class lfcWrapper:
 			pass
 
 	def inference(self, imgs, count=None):
-		imgs = imgs.astype(np.uint64)
+		# imgs = imgs.astype(np.uint64)
 		self.allocate_io_buffers(input_shape=imgs.shape, output_shape=(imgs.shape[0]*self.psl,))
 		np.copyto(self.accel_input_buffer, imgs)
 		self.bbj.numReps = imgs.shape[0]

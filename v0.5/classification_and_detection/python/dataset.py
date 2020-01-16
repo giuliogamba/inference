@@ -75,7 +75,8 @@ class Dataset():
             self.image_list_inmemory = {}
 
     def get_samples(self, id_list):
-        data = np.array([self.image_list_inmemory[id] for id in id_list])
+        # TODO: np.uint64 is only for lfc, cnv
+        data = np.array([self.image_list_inmemory[id] for id in id_list], dtype=np.uint64)
         return data, [self.label_list[id] for id in id_list]
 
     def get_item_loc(self, id):
