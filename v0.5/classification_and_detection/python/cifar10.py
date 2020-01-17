@@ -30,6 +30,7 @@ class CIFAR10(dataset.Dataset):
         self.use_cache = use_cache
         self.pre_process = pre_process
         self.classes = 10
+        self.use_cma = True
         
         start = time.time()
         images, labels = self.load_cifar10_test_set(self.data_path, self.count)

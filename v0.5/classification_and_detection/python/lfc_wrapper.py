@@ -191,9 +191,12 @@ class lfcWrapper:
 			pass
 
 	def inference(self, imgs, count=None):
-		# imgs = imgs.astype(np.uint64)
 		self.allocate_io_buffers(input_shape=imgs.shape, output_shape=(imgs.shape[0]*self.psl,))
-		np.copyto(self.accel_input_buffer, imgs)
+		# np.copyto(self.accel_input_buffer, imgs)
+		
+		self.bbj.in_V_1 = imgs.physical_address & 0xffffffff
+		self.bbj.in_V_2 = (imgs.physical_address >> 32) & 0xffffffff
+		
 		self.bbj.numReps = imgs.shape[0]
 		start = time.time()
 		self.ExecAccel()
@@ -242,13 +245,13 @@ class lfcWrapper:
 
 	def allocate_io_buffers(self, input_shape, output_shape):
 
-		self.accel_input_buffer  = allocate(shape=input_shape, dtype=np.uint64)
+		# self.accel_input_buffer  = allocate(shape=input_shape, dtype=np.uint64)
 		self.accel_output_buffer = allocate(shape=output_shape, dtype=np.uint64)
 		
-		np.copyto(self.accel_output_buffer, np.zeros(output_shape, dtype=np.uint64))
+		# np.copyto(self.accel_output_buffer, np.zeros(output_shape, dtype=np.uint64))
 		
-		self.bbj.in_V_1 = self.accel_input_buffer.physical_address & 0xffffffff
-		self.bbj.in_V_2 = (self.accel_input_buffer.physical_address >> 32) & 0xffffffff
+		# self.bbj.in_V_1 = self.accel_input_buffer.physical_address & 0xffffffff
+		# self.bbj.in_V_2 = (self.accel_input_buffer.physical_address >> 32) & 0xffffffff
 
 		self.bbj.out_V_1 = self.accel_output_buffer.physical_address & 0xffffffff
 		self.bbj.out_V_2 = (self.accel_output_buffer.physical_address >> 32) & 0xffffffff
@@ -270,6 +273,6 @@ class lfcWrapper:
 
 
 	def free_io_buffers(self):
-		del self.accel_input_buffer
+		# del self.accel_input_buffer
 		del self.accel_output_buffer
 		self.interface.deinit()

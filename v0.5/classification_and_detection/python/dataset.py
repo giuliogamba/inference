@@ -10,7 +10,7 @@ import time
 
 import cv2
 import numpy as np
-from pynq import allocate
+
 bitsPerExtMemWord=64
 
 
@@ -50,7 +50,7 @@ class Dataset():
         self.label_list = []
         self.image_list_inmemory = {}
         self.last_loaded = -1
-        self.name = None
+        self.use_cma = False
 
     def preprocess(self, use_cache=True):
         raise NotImplementedError("Dataset:preprocess")
@@ -76,10 +76,14 @@ class Dataset():
             self.image_list_inmemory = {}
 
     def get_samples(self, id_list):
-        # TODO: add cma here maybe (?) as np.uint64 is only for lfc, cnv
-        # if self.name == "mnist" or self.name == "cifar10":
-        # copy to cma buffer here
-        data = np.array([self.image_list_inmemory[id] for id in id_list], dtype=np.uint64)
+        data_list = [self.image_list_inmemory[id] for id in id_list]
+        
+        if self.use_cma:
+            from pynq import allocate
+            data = allocate(shape=(len(data_list), len(data_list[0])), dtype=np.uint64)
+            np.copyto(data, np.array(data_list, dtype=np.uint64))
+        else: 
+            data = np.array(data_list)
         return data, [self.label_list[id] for id in id_list]
 
     def get_item_loc(self, id):
@@ -126,7 +130,7 @@ class PostProcessArgMax:
 
     def __call__(self, results, ids, expected=None, result_dict=None):
         processed_results = []
-        results = np.argmax(results, axis=1)
+        results = np.argmax(results[0], axis=1)
         n = results.shape[0]
         for idx in range(0, n):
             result = results[idx] + self.offset
