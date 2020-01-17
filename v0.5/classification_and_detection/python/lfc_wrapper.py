@@ -112,6 +112,7 @@ class lfcWrapper:
 		# self.out_prec_frac_layer = [0,0,0,0]
 
 		# else baked in weights will be used
+		# params_path = "/home/xilinx/BNN-PYNQ/bnn/params/mnist/" + self.network_name
 		if params_path is not None:
 			self.load_parameters(params_path)
 		else:

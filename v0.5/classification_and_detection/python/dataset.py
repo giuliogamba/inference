@@ -10,7 +10,7 @@ import time
 
 import cv2
 import numpy as np
-
+from pynq import allocate
 bitsPerExtMemWord=64
 
 
@@ -50,6 +50,7 @@ class Dataset():
         self.label_list = []
         self.image_list_inmemory = {}
         self.last_loaded = -1
+        self.name = None
 
     def preprocess(self, use_cache=True):
         raise NotImplementedError("Dataset:preprocess")
@@ -75,7 +76,9 @@ class Dataset():
             self.image_list_inmemory = {}
 
     def get_samples(self, id_list):
-        # TODO: np.uint64 is only for lfc, cnv
+        # TODO: add cma here maybe (?) as np.uint64 is only for lfc, cnv
+        # if self.name == "mnist" or self.name == "cifar10":
+        # copy to cma buffer here
         data = np.array([self.image_list_inmemory[id] for id in id_list], dtype=np.uint64)
         return data, [self.label_list[id] for id in id_list]
 
@@ -123,7 +126,7 @@ class PostProcessArgMax:
 
     def __call__(self, results, ids, expected=None, result_dict=None):
         processed_results = []
-        results = np.argmax(results[0], axis=1)
+        results = np.argmax(results, axis=1)
         n = results.shape[0]
         for idx in range(0, n):
             result = results[idx] + self.offset
@@ -297,7 +300,7 @@ def binarizeAndPack(imgs):
     values_paded = paddedSize(imgs.shape[1], bitsPerExtMemWord) - imgs.shape[1]
     imgs = np.where(imgs < 0, False, True).astype(np.bool)
     imgs = np.pad(imgs, ((0,0),(0,values_paded)), 'constant', constant_values=False)
-    binImages = np.packbits(imgs, axis=1, bitorder='little').view(np.uint64)#.reshape(-1,)
+    binImages = np.packbits(imgs, axis=1, bitorder='little').view(np.uint64)
     return binImages
 
 
@@ -307,3 +310,22 @@ def pre_process_lfc(images):
     return binImages
 
 
+def quantizeAndPack(imgs):
+    imgs = np.clip(imgs, -1, 1-(2**-7))
+    imgs = np.round(imgs*2**7)
+    imgs = imgs.astype(np.uint8).view(np.uint64)
+    return imgs
+
+def interleave_channels(imgs, dim1, dim2):
+    imgs = imgs.reshape(imgs.shape[0], -1, dim1*dim2)
+    imgs = np.swapaxes(imgs, -1, 1).reshape(imgs.shape[0], -1)
+    return imgs
+
+
+def pre_process_cnv(imgs):
+    bytes_paded = (paddedSize(imgs.shape[1]*8, bitsPerExtMemWord) - (imgs.shape[1]*8))//8
+    imgs = np.pad(imgs, ((0,0),(0,bytes_paded)), 'constant', constant_values=0)
+    imgs = 2*(imgs/255.)-1
+    imgs = interleave_channels(imgs, 32, 32)
+    binImages = quantizeAndPack(imgs)
+    return binImages

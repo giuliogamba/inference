@@ -24,6 +24,7 @@ import dataset
 import imagenet
 import coco
 import mnist
+import cifar10
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("main")
@@ -62,6 +63,9 @@ SUPPORTED_DATASETS = {
     "mnist":
         (mnist.MNIST, dataset.pre_process_lfc, dataset.PostProcessLog2(),
         {"image_size": [784]}),
+    "cifar10":
+        (cifar10.CIFAR10, dataset.pre_process_cnv, dataset.PostProcessArgMax(),
+        {"image_size": [32*32*3]}),
 
 }
 
@@ -168,7 +172,37 @@ SUPPORTED_PROFILES = {
         "outputs": "log2",
         "backend": "pynq",
         "model-name": "lfcW1A1",
-    }
+    },
+    "lfcW1A2-pynq": {
+        "dataset": "mnist",
+        "inputs": "bin_file",
+        "outputs": "log2",
+        "backend": "pynq",
+        "model-name": "lfcW1A2",
+    },
+    "cnvW1A1-pynq": {
+        "dataset": "cifar10",
+        "inputs": "bin_file",
+        "outputs": "ArgMax:0",
+        "backend": "pynq",
+        "model-name": "cnvW1A1",
+    },
+    "cnvW1A2-pynq": {
+        "dataset": "cifar10",
+        "inputs": "bin_file",
+        "outputs": "ArgMax:0",
+        "backend": "pynq",
+        "model-name": "cnvW1A2",
+    },
+    "cnvW2A2-pynq": {
+        "dataset": "cifar10",
+        "inputs": "bin_file",
+        "outputs": "ArgMax:0",
+        "backend": "pynq",
+        "model-name": "cnvW2A2",
+    },
+
+
 }
 
 SCENARIO_MAP = {
@@ -466,11 +500,11 @@ def main():
     count = ds.get_item_count()
 
     # warmup
-    # ds.load_query_samples([0])
-    # for _ in range(5):
-    #     img, _ = ds.get_samples([0])
-    #     _ = backend.predict({backend.inputs[0]: img})
-    # ds.unload_query_samples(None)
+    ds.load_query_samples([0])
+    for _ in range(5):
+        img, lab = ds.get_samples([0])
+        pred = backend.predict({backend.inputs[0]: img})
+    ds.unload_query_samples(None)
 
     scenario = SCENARIO_MAP[args.scenario]
     runner_map = {
