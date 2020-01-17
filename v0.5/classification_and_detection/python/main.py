@@ -345,6 +345,7 @@ class RunnerBase:
             response_array_refs = []
             response = []
             for idx, query_id in enumerate(qitem.query_id):
+                # print(processed_results)
                 response_array = array.array("B", np.array(processed_results[idx], np.float32).tobytes())
                 response_array_refs.append(response_array)
                 bi = response_array.buffer_info()

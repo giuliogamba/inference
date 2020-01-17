@@ -214,7 +214,7 @@ class cnvWrapper:
 		self.ExecAccel()
 		end = time.time() - start
 		predictions = np.copy(np.frombuffer(self.accel_output_buffer, dtype=np.uint64))
-		predictions = predictions.reshape(1, imgs.shape[0], -1).view(np.int16)
+		predictions = predictions.reshape(imgs.shape[0], -1).view(np.int16)
 		predictions = predictions[:,:len(self.classes)]
 		self.free_io_buffers()
 		return predictions
