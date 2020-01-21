@@ -67,6 +67,11 @@ if [ $name == "cnvW2A2-pynq" ] ; then
     profile=cnvW2A2-pynq
     extra_args="$extra_args --backend pynq"
 fi
+if [ $name == "resnet50-pynq" ] ; then
+    model_path="$MODEL_DIR/resnet50.xclbin"
+    profile=resnet50-pynq
+    extra_args="$extra_args --backend pynq"
+fi
 #
 # tensorflow
 #

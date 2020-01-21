@@ -10,8 +10,6 @@ __email__ = "ussamaz@xilinx.com"
 import pynq
 import backend
 from threading import Lock
-from lfc_wrapper import lfcWrapper
-from cnv_wrapper import cnvWrapper
 
 
 class BackendPynq(backend.Backend):
@@ -36,9 +34,14 @@ class BackendPynq(backend.Backend):
         self.outputs = ["output"]
         model_path = model_path.replace('//', '/')
         if name.startswith('lfc'):
+            from lfc_wrapper import lfcWrapper
             self.model = lfcWrapper(network=name, bitstream_path=model_path, download_bitstream=True)
         elif name.startswith('cnv'):
+            from cnv_wrapper import cnvWrapper
             self.model = cnvWrapper(network=name, bitstream_path=model_path, download_bitstream=True)
+        elif name.startswith('resnet50'):
+            from resnet_wrapper import resnet_Wrapper
+            self.model = resnet_Wrapper(network=name, bitstream_path=model_path, download_bitstream=True)
         return self
 
     def predict(self, feed):

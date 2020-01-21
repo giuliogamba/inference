@@ -6,3 +6,4 @@ loadgen/mlperf_loadgen.cpython-36m-aarch64-linux-gnu.so
 loadgen/mlperf_loadgen.egg-info/
 v0.5/classification_and_detection/sds_trace_data.dat
 sds_trace_data.dat
+loadgen/mlperf_loadgen.cpython-37m-x86_64-linux-gnu.so
