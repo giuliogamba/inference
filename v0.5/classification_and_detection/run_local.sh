@@ -10,4 +10,4 @@ if [ ! -d $OUTPUT_DIR ]; then
 fi
 
 python3 python/main.py --profile $profile $common_opt --model $model_path $dataset \
-    --output $OUTPUT_DIR $EXTRA_OPS --scenario SingleStream --threads 4 --count 10000 --accuracy $@
+    --output $OUTPUT_DIR $EXTRA_OPS --scenario SingleStream --threads 4 --accuracy $@
