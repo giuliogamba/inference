@@ -131,9 +131,6 @@ class PostProcessTop5:
     def __call__(self, results, ids, expected=None, result_dict=None):
         processed_results = []
         n = results.shape[0]
-        print("\n\n")
-        print(n)
-        print("\n\n")
         for idx in range(0, n):
             correct = False
             for topk in range(results.shape[1]):
