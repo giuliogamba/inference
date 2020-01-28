@@ -122,6 +122,40 @@ class PostProcessCommon:
         results["total"] = self.total
 
 
+class PostProcessTop5:
+    def __init__(self, offset=0):
+        self.offset = offset
+        self.good = 0
+        self.total = 0
+
+    def __call__(self, results, ids, expected=None, result_dict=None):
+        processed_results = []
+        n = results.shape[0]
+        for idx in range(0, n):
+            correct = False
+            for topk in range(results.shape[1]):
+                result = results[idx][topk] + self.offset
+                if result == expected[idx]:
+                    self.good += 1
+                    processed_results.append([result])
+                    correct=True
+            if not correct:
+                processed_results.append([10001])
+
+        self.total += n
+        return processed_results
+
+    def add_results(self, results):
+        pass
+
+    def start(self):
+        self.good = 0
+        self.total = 0
+
+    def finalize(self, results, ds=False,  output_dir=None):
+        results["good"] = self.good
+        results["total"] = self.total
+
 class PostProcessArgMax:
     def __init__(self, offset=0):
         self.offset = offset
@@ -308,6 +342,10 @@ def pre_process_coco_resnet34_tf(img, dims=None, need_transpose=False):
     if need_transpose:
         img = img.transpose([2, 0, 1])
 
+    return img
+
+def pre_process_resnet50(img, dims=None, need_transpose=False):
+    img = cv2.resize(img, (224,224))
     return img
 
 

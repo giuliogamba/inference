@@ -15,3 +15,4 @@ python3 python/main.py --profile $profile $common_opt --model $model_path $datas
 
 # python3 -m cProfile -o temp.cprof python/main.py --profile $profile $common_opt --model $model_path $dataset \
 #     --output $OUTPUT_DIR $EXTRA_OPS --scenario SingleStream --threads 4 --count 10000 --max-batchsize 10000 --accuracy $@
+

@@ -39,6 +39,9 @@ SUPPORTED_DATASETS = {
     "imagenet":
         (imagenet.Imagenet, dataset.pre_process_vgg, dataset.PostProcessCommon(offset=-1),
          {"image_size": [224, 224, 3]}),
+    "imagenet_resnet50":
+        (imagenet.Imagenet, dataset.pre_process_resnet50, dataset.PostProcessTop5(),
+         {"image_size": [224, 224, 3]}),
     "imagenet_mobilenet":
         (imagenet.Imagenet, dataset.pre_process_mobilenet, dataset.PostProcessArgMax(offset=-1),
          {"image_size": [224, 224, 3]}),
@@ -201,7 +204,13 @@ SUPPORTED_PROFILES = {
         "backend": "pynq",
         "model-name": "cnvW2A2",
     },
-
+    "resnet50-pynq": {
+        "dataset": "imagenet_resnet50",
+        "inputs": "NHWC",
+        "outputs": "ArgMax:0",
+        "backend": "pynq",
+        "model-name": "resnet50",
+    },
 
 }
 
