@@ -130,15 +130,26 @@ class PostProcessArgMax:
 
     def __call__(self, results, ids, expected=None, result_dict=None):
         processed_results = []
+        
         results = np.argmax(results, axis=1)
+
+        # vectorized version
+        diff = results - np.asarray(expected)
+        errors = np.count_nonzero(diff)
         n = results.shape[0]
-        for idx in range(0, n):
-            result = results[idx] + self.offset
-            processed_results.append([result])
-            if result == expected[idx]:
-                self.good += 1
+        self.good += n-errors
         self.total += n
-        return processed_results
+        return results.reshape(-1).tolist()
+        
+        # # old orignal version
+        # n = results.shape[0]
+        # for idx in range(0, n):
+        #     result = results[idx] + self.offset
+        #     processed_results.append([result])
+        #     if result == expected[idx]:
+        #         self.good += 1
+        # self.total += n
+        # return processed_results
 
     def add_results(self, results):
         pass

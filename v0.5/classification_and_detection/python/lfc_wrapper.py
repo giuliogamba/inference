@@ -191,18 +191,15 @@ class lfcWrapper:
 			pass
 
 	def inference(self, imgs, count=None):
-		self.allocate_io_buffers(input_shape=imgs.shape, output_shape=(imgs.shape[0]*self.psl,))
+		# self.allocate_io_buffers(input_shape=imgs.shape, output_shape=(imgs.shape[0]*self.psl,))
 		# np.copyto(self.accel_input_buffer, imgs)
 		
-		self.bbj.in_V_1 = imgs.physical_address & 0xffffffff
-		self.bbj.in_V_2 = (imgs.physical_address >> 32) & 0xffffffff
+		# self.bbj.in_V_1 = imgs.physical_address & 0xffffffff
+		# self.bbj.in_V_2 = (imgs.physical_address >> 32) & 0xffffffff
 		
-		self.bbj.numReps = imgs.shape[0]
-		start = time.time()
+		# self.bbj.numReps = imgs.shape[0]
 		self.ExecAccel()
-		end = time.time() - start
 		predictions = np.copy(np.frombuffer(self.accel_output_buffer, dtype=np.uint64))
-		self.free_io_buffers()
 		return predictions
 
 	# dataset specific

@@ -20,7 +20,7 @@ class BackendPynq(backend.Backend):
         self.sess = None
         self.model = None
         self.device = "fpga"
-        self.lock = Lock()
+        # self.lock = Lock()
 
     def version(self):
         return pynq.__version__
@@ -41,8 +41,19 @@ class BackendPynq(backend.Backend):
             self.model = cnvWrapper(network=name, bitstream_path=model_path, download_bitstream=True)
         return self
 
+
+    def allocate_buffers(self, data):
+            self.model.allocate_io_buffers(input_shape=data.shape, output_shape=(data.shape[0]*self.model.psl,))
+            self.model.bbj.in_V_1 = data.physical_address & 0xffffffff
+            self.model.bbj.in_V_2 = (data.physical_address >> 32) & 0xffffffff
+            self.model.bbj.numReps = data.shape[0]
+
+    def cleanup(self):
+        xlnk = pynq.Xlnk()
+        xlnk.xlnk_reset()
+
     def predict(self, feed):
-        self.lock.acquire()    
+        # self.lock.acquire()    
         output = self.model.inference(feed["input"])    
-        self.lock.release()        
+        # self.lock.release()        
         return output

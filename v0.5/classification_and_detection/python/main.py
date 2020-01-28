@@ -357,11 +357,13 @@ class RunnerBase:
         query_id = [q.id for q in query_samples]
         if len(query_samples) < self.max_batchsize:
             data, label = self.ds.get_samples(idx)
+            self.model.allocate_buffers(data)
             self.run_one_item(Item(query_id, idx, data, label))
         else:
             bs = self.max_batchsize
             for i in range(0, len(idx), bs):
                 data, label = self.ds.get_samples(idx[i:i+bs])
+                self.model.allocate_buffers(data)
                 self.run_one_item(Item(query_id[i:i+bs], idx[i:i+bs], data, label))
 
     def finish(self):
@@ -389,6 +391,7 @@ class QueueRunner(RunnerBase):
                 # None in the queue indicates the parent want us to exit
                 tasks_queue.task_done()
                 break
+            self.model.allocate_buffers(qitem.img)
             self.run_one_item(qitem)
             tasks_queue.task_done()
 
@@ -502,8 +505,9 @@ def main():
 
     # warmup
     ds.load_query_samples([0])
-    for _ in range(5):
+    for i in range(5):
         img, lab = ds.get_samples([0])
+        backend.allocate_buffers(img)        
         pred = backend.predict({backend.inputs[0]: img})
     ds.unload_query_samples(None)
 
@@ -557,7 +561,7 @@ def main():
         settings.multi_stream_target_latency_ns = int(args.max_latency * NANO_SEC)
 
     sut = lg.ConstructSUT(issue_queries, flush_queries, process_latencies)
-    qsl = lg.ConstructQSL(count, min(count, 500), ds.load_query_samples, ds.unload_query_samples)
+    qsl = lg.ConstructQSL(count, min(count, args.max_batchsize), ds.load_query_samples, ds.unload_query_samples)
 
     log.info("starting {}".format(scenario))
     result_dict = {"good": 0, "total": 0, "scenario": str(scenario)}
