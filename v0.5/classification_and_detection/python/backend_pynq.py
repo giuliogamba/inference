@@ -74,9 +74,6 @@ class BackendPynq(backend.Backend):
     def allocate_buffers(self, data):
         self.cleanup()
         self.model.allocate_io_buffers(data)
-        # self.model.bbj.in_V_1 = data.physical_address & 0xffffffff
-        # self.model.bbj.in_V_2 = (data.physical_address >> 32) & 0xffffffff
-        # self.model.bbj.numReps = data.shape[0]
 
     def cleanup(self):
         del self.model.accel_input_buffer

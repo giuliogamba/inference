@@ -195,7 +195,7 @@ class PostProcessLog2:
 
     def __call__(self, results, ids, expected=None, result_dict=None):
         results = np.where(results==0, 1, results)
-        results = np.log2(results).astype(np.uint)        
+        results = np.log2(results).astype(np.uint)
         processed_results = []
 
         # TODO: add vectorized version
