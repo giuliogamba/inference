@@ -9,10 +9,11 @@ if [ ! -d $OUTPUT_DIR ]; then
     mkdir -p $OUTPUT_DIR
 fi
 
-
+# command for resnet50 SingleStream
 python3 python/main.py --profile $profile $common_opt --model $model_path $dataset \
-    --output $OUTPUT_DIR $EXTRA_OPS --scenario SingleStream --threads 4 --count 10000 --max-batchsize 10000 --accuracy $@
+    --output $OUTPUT_DIR $EXTRA_OPS --scenario SingleStream --accuracy $@
 
 # python3 -m cProfile -o temp.cprof python/main.py --profile $profile $common_opt --model $model_path $dataset \
 #     --output $OUTPUT_DIR $EXTRA_OPS --scenario SingleStream --threads 4 --count 10000 --max-batchsize 10000 --accuracy $@
 
+# pyprof2calltree -k -i temp.cprof

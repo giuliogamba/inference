@@ -68,7 +68,7 @@ if [ $name == "cnvW2A2-pynq" ] ; then
     extra_args="$extra_args --backend pynq"
 fi
 if [ $name == "resnet50-pynq" ] ; then
-    model_path="$MODEL_DIR/resnet50.xclbin"
+    model_path="$MODEL_DIR/$model.xclbin"
     profile=resnet50-pynq
     extra_args="$extra_args --backend pynq"
 fi

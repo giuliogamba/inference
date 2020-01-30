@@ -36,12 +36,7 @@ def usleep(sec):
         kernel32.WaitForSingleObject(timer, 0xffffffff)
     else:
         time.sleep(sec)
-
-def paddedSize(inp, padTo):
-    if inp % padTo == 0: 
-        return inp
-    else:
-        return inp + padTo - (inp % padTo)
+        
 
 class Dataset():
     def __init__(self):
@@ -50,7 +45,7 @@ class Dataset():
         self.label_list = []
         self.image_list_inmemory = {}
         self.last_loaded = -1
-        self.use_cma = False
+        self.np_data_type = np.float64 # override to np.uint64 for BNN-PYNQ networks
 
     def preprocess(self, use_cache=True):
         raise NotImplementedError("Dataset:preprocess")
@@ -76,14 +71,7 @@ class Dataset():
             self.image_list_inmemory = {}
 
     def get_samples(self, id_list):
-        data_list = [self.image_list_inmemory[id] for id in id_list]
-        
-        if self.use_cma:
-            from pynq import allocate
-            data = allocate(shape=(len(data_list), len(data_list[0])), dtype=np.uint64)
-            np.copyto(data, np.array(data_list, dtype=np.uint64))
-        else: 
-            data = np.array(data_list)
+        data = np.array([self.image_list_inmemory[id] for id in id_list], dtype=self.np_data_type)
         return data, [self.label_list[id] for id in id_list]
 
     def get_item_loc(self, id):
@@ -121,7 +109,7 @@ class PostProcessCommon:
         results["good"] = self.good
         results["total"] = self.total
 
-
+# postprocessing function for resnet50 on alveo U250
 class PostProcessTop5:
     def __init__(self, offset=0):
         self.offset = offset
@@ -156,6 +144,7 @@ class PostProcessTop5:
         results["good"] = self.good
         results["total"] = self.total
 
+
 class PostProcessArgMax:
     def __init__(self, offset=0):
         self.offset = offset
@@ -175,7 +164,7 @@ class PostProcessArgMax:
         self.total += n
         return results.reshape(-1).tolist()
         
-        # # old orignal version
+        # # orignal version
         # n = results.shape[0]
         # for idx in range(0, n):
         #     result = results[idx] + self.offset
@@ -196,6 +185,8 @@ class PostProcessArgMax:
         results["good"] = self.good
         results["total"] = self.total
 
+
+# postprocessing function for LFC from BNN-PYNQ
 class PostProcessLog2:
     def __init__(self, offset=0):
         self.offset = offset
@@ -206,6 +197,8 @@ class PostProcessLog2:
         results = np.where(results==0, 1, results)
         results = np.log2(results).astype(np.uint)        
         processed_results = []
+
+        # TODO: add vectorized version
         n = results.shape[0]
         for idx in range(0, n):
             result = results[idx] + self.offset
@@ -343,6 +336,15 @@ def pre_process_coco_resnet34_tf(img, dims=None, need_transpose=False):
         img = img.transpose([2, 0, 1])
 
     return img
+
+
+# preprocessing functions added for resnet50 and BNN-PYNQ networks
+
+def paddedSize(inp, padTo):
+    if inp % padTo == 0: 
+        return inp
+    else:
+        return inp + padTo - (inp % padTo)
 
 def pre_process_resnet50(img, dims=None, need_transpose=False):
     img = cv2.resize(img, (224,224))

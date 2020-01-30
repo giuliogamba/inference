@@ -326,6 +326,7 @@ class RunnerBase:
         self.take_accuracy = False
         self.max_batchsize = max_batchsize
         self.result_timing = []
+        self.lock = threading.Lock()
 
     def handle_tasks(self, tasks_queue):
         pass
@@ -341,6 +342,7 @@ class RunnerBase:
         processed_results = []
         try:
             results = self.model.predict({self.model.inputs[0]: qitem.img})
+            self.lock.release()
             processed_results = self.post_process(results, qitem.content_id, qitem.label, self.result_dict)
             if self.take_accuracy:
                 self.post_process.add_results(processed_results)
@@ -354,7 +356,6 @@ class RunnerBase:
             response_array_refs = []
             response = []
             for idx, query_id in enumerate(qitem.query_id):
-                # print(processed_results)
                 response_array = array.array("B", np.array(processed_results[idx], np.float32).tobytes())
                 response_array_refs.append(response_array)
                 bi = response_array.buffer_info()
@@ -366,13 +367,15 @@ class RunnerBase:
         query_id = [q.id for q in query_samples]
         if len(query_samples) < self.max_batchsize:
             data, label = self.ds.get_samples(idx)
-            self.model.allocate_buffers(data)
+            self.lock.acquire()
+            self.model.allocate_buffers(data) # function added here to allocate cma buffer to be used by the accelerator
             self.run_one_item(Item(query_id, idx, data, label))
         else:
             bs = self.max_batchsize
             for i in range(0, len(idx), bs):
                 data, label = self.ds.get_samples(idx[i:i+bs])
-                self.model.allocate_buffers(data)
+                self.lock.acquire()
+                self.model.allocate_buffers(data) # function added here to allocate cma buffer to be used by the accelerator
                 self.run_one_item(Item(query_id[i:i+bs], idx[i:i+bs], data, label))
 
     def finish(self):
@@ -400,7 +403,8 @@ class QueueRunner(RunnerBase):
                 # None in the queue indicates the parent want us to exit
                 tasks_queue.task_done()
                 break
-            self.model.allocate_buffers(qitem.img)
+            self.lock.acquire()
+            self.model.allocate_buffers(qitem.img) # function added here to allocate cma buffer to be used by the accelerator
             self.run_one_item(qitem)
             tasks_queue.task_done()
 
@@ -514,9 +518,9 @@ def main():
 
     # warmup
     ds.load_query_samples([0])
-    for i in range(5):
+    for _ in range(5):
         img, lab = ds.get_samples([0])
-        backend.allocate_buffers(img)        
+        backend.allocate_buffers(img) # function added here to allocate cma buffer to be used by the accelerator        
         pred = backend.predict({backend.inputs[0]: img})
     ds.unload_query_samples(None)
 

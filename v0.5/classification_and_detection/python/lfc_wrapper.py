@@ -27,16 +27,19 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+"""
+pynq wrapper for lfc networks
+"""
+
+__author__ = "Ussama Zahid"
+__copyright__ = "Copyright 2020, Xilinx"
+__email__ = "ussamaz@xilinx.com"
+
 import os
 import time
 import cffi
 import numpy as np
 from pynq import Overlay, PL, allocate
-
-
-__author__ = "Ussama Zahid"
-__copyright__ = "Copyright 2020, Xilinx"
-__email__ = "ussamaz@xilinx.com"
 
 bitsPerExtMemWord = 64
 

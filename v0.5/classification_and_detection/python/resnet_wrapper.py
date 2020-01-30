@@ -27,6 +27,15 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+"""
+python wrapper for resnet50 on alveo U250
+"""
+
+__author__ = "Ussama Zahid, Lucian Petrica"
+__copyright__ = "Copyright 2020, Xilinx"
+__email__ = "{ussamaz, lucianp}@xilinx.com"
+
+import os
 import numpy as np
 from pynq import Overlay, PL, allocate
 
@@ -38,29 +47,32 @@ class resnet_Wrapper():
         if PL.bitfile_name != self.bitstream_path:
             raise RuntimeError("Incorrect Overlay loaded")
         self.accelerator = self.overlay.resnet50_1
-
-        wfile = "/home/ussamaz/xilinx/ResNet50-QNN/host/fcweights.csv"
-        
+        # loading fc weight in DDR of alveo
+        wfile, _  = os.path.split(self.bitstream_path)
+        wfile = wfile + "/fcweights.csv"
+        print("Loading fc weights...")
         fcweights = np.genfromtxt(wfile, delimiter=',', dtype=np.int8)
         self.fcbuf = allocate((1000,2048), dtype=np.int8, target=self.overlay.bank0)
-
         #csv reader erroneously adds one extra element to the end, so remove, then reshape
         fcweights = fcweights[:-1].reshape(1000,2048)
         self.fcbuf[:] = fcweights
         self.fcbuf.flush()
+        self.accel_input_buffer = None
+        self.accel_output_buffer = None
+        self.psl = 1
 
     def inference(self, imgs):
-        inbuf = allocate(shape=imgs.shape, dtype=np.uint8, target=self.overlay.bank0)
-        outbuf = allocate((imgs.shape[0],5), dtype=np.uint32, target=self.overlay.bank0)
-        #transfer to accelerator
-        inbuf[:] = imgs
-        inbuf.flush()     
-        #do inference
-        self.accelerator.call(inbuf, outbuf, self.fcbuf, imgs.shape[0])
-        #get results
-        outbuf.invalidate()
-        results = np.copy(outbuf)
-        del inbuf
-        del outbuf
+        # transfer to accelerator
+        self.accel_input_buffer[:] = imgs
+        self.accel_input_buffer.flush()     
+        # do inference
+        self.accelerator.call(self.accel_input_buffer, self.accel_output_buffer, self.fcbuf, imgs.shape[0])
+        # get results
+        self.accel_output_buffer.invalidate()
+        results = np.copy(self.accel_output_buffer)
         return results
 
+    def allocate_io_buffers(self, data):
+        self.accel_input_buffer = allocate(shape=data.shape, dtype=np.uint8, target=self.overlay.bank0)
+        # returns top 5 classes
+        self.accel_output_buffer = allocate(shape=(data.shape[0]*self.psl, 5), dtype=np.uint32, target=self.overlay.bank0)

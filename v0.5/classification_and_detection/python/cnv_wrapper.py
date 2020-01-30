@@ -27,17 +27,20 @@
 # OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+"""
+python wrapper for cnv networks
+"""
+
+__author__ = "Ussama Zahid"
+__copyright__ = "Copyright 2020, Xilinx"
+__email__ = "ussamaz@xilinx.com"
+
 import os
 import time
 import cffi
 import pickle
 import numpy as np
 from pynq import Overlay, PL, allocate
-
-
-__author__ = "Ussama Zahid"
-__copyright__ = "Copyright 2020, Xilinx"
-__email__ = "ussamaz@xilinx.com"
 
 bitsPerExtMemWord = 64
 
@@ -83,7 +86,7 @@ class cnvWrapper:
 		self.base_addr = self.overlay.BlackBoxJam_0.mmio.base_addr
 		self.network_name = network
 		
-		dllname = "/home/xilinx/BNN-PYNQ/bnn/libraries/ultra96/layer_loader.so"
+		dllname = "./lib/layer_loader.so"
 		if dllname not in _libraries:
 			_libraries[dllname] = _ffi.dlopen(os.path.join(BNN_LIB_DIR, dllname))
 		self.interface = _libraries[dllname]
@@ -256,7 +259,7 @@ class cnvWrapper:
 	def allocate_io_buffers(self, input_shape, output_shape):
 
 		# self.accel_input_buffer  = allocate(shape=input_shape, dtype=np.uint64)
-		self.accel_output_buffer = allocate(shape=output_shape, dtype=np.uint64)
+		self.accel_output_buffer = allocate(shape=(output_shape,), dtype=np.uint64)
 				
 		# self.bbj.in_V_1 = self.accel_input_buffer.physical_address & 0xffffffff
 		# self.bbj.in_V_2 = (self.accel_input_buffer.physical_address >> 32) & 0xffffffff
