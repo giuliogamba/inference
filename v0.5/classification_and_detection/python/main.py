@@ -313,9 +313,13 @@ class Item:
         self.content_id = content_id
         self.img = img
         self.label = label
+        # timer starts here when the item is created
         self.start = time.time()
 
-
+start = 0
+import time
+transfer = 0
+infer = 0
 class RunnerBase:
     def __init__(self, model, ds, threads, post_proc=None, max_batchsize=128):
         self.take_accuracy = False
@@ -326,7 +330,8 @@ class RunnerBase:
         self.take_accuracy = False
         self.max_batchsize = max_batchsize
         self.result_timing = []
-        self.lock = threading.Lock()
+        self.model.init_cma_buffers(self.threads, shape=(self.max_batchsize, 224, 224, 3))
+        # global starttransfer, endtransfer, infer,endpp
 
     def handle_tasks(self, tasks_queue):
         pass
@@ -337,16 +342,26 @@ class RunnerBase:
         self.take_accuracy = take_accuracy
         self.post_process.start()
 
-    def run_one_item(self, qitem):
+    def run_one_item(self, qitem, i):
         # run the prediction
         processed_results = []
         try:
-            results = self.model.predict({self.model.inputs[0]: qitem.img})
-            self.lock.release()
+            # starttransfer = time.time()
+            self.model.transfer_buffer(qitem.img, i) # function added here to allocate cma buffer to be used by the accelerator
+            # endtransfer = time.time()
+
+            results = self.model.predict(i)
+            # infer = time.time()
+            
             processed_results = self.post_process(results, qitem.content_id, qitem.label, self.result_dict)
+            # endpp = time.time()
             if self.take_accuracy:
                 self.post_process.add_results(processed_results)
                 self.result_timing.append(time.time() - qitem.start)
+                # print('transfer = {}'.format((endtransfer-starttransfer)*1000))
+                # print('infer = {}'.format((infer-endtransfer)*1000))
+                # print('post processing = {}'.format((endpp-infer)*1000))
+
         except Exception as ex:  # pylint: disable=broad-except
             src = [self.ds.get_item_loc(i) for i in qitem.content_id]
             log.error("thread: failed on contentid=%s, %s", src, ex)
@@ -363,20 +378,18 @@ class RunnerBase:
             lg.QuerySamplesComplete(response)
 
     def enqueue(self, query_samples):
+        global start 
         idx = [q.index for q in query_samples]
         query_id = [q.id for q in query_samples]
         if len(query_samples) < self.max_batchsize:
             data, label = self.ds.get_samples(idx)
-            self.lock.acquire()
-            self.model.allocate_buffers(data) # function added here to allocate cma buffer to be used by the accelerator
-            self.run_one_item(Item(query_id, idx, data, label))
+            self.run_one_item(Item(query_id, idx, data, label), 0)
         else:
             bs = self.max_batchsize
             for i in range(0, len(idx), bs):
                 data, label = self.ds.get_samples(idx[i:i+bs])
-                self.lock.acquire()
-                self.model.allocate_buffers(data) # function added here to allocate cma buffer to be used by the accelerator
-                self.run_one_item(Item(query_id[i:i+bs], idx[i:i+bs], data, label))
+                start = time.time()
+                self.run_one_item(Item(query_id[i:i+bs], idx[i:i+bs], data, label), 0)
 
     def finish(self):
         pass
@@ -388,14 +401,13 @@ class QueueRunner(RunnerBase):
         self.tasks = Queue(maxsize=threads * 4)
         self.workers = []
         self.result_dict = {}
-
-        for _ in range(self.threads):
-            worker = threading.Thread(target=self.handle_tasks, args=(self.tasks,))
+        for i in range(self.threads):
+            worker = threading.Thread(target=self.handle_tasks, args=(self.tasks, i))
             worker.daemon = True
             self.workers.append(worker)
             worker.start()
 
-    def handle_tasks(self, tasks_queue):
+    def handle_tasks(self, tasks_queue, i):
         """Worker thread."""
         while True:
             qitem = tasks_queue.get()
@@ -403,9 +415,7 @@ class QueueRunner(RunnerBase):
                 # None in the queue indicates the parent want us to exit
                 tasks_queue.task_done()
                 break
-            self.lock.acquire()
-            self.model.allocate_buffers(qitem.img) # function added here to allocate cma buffer to be used by the accelerator
-            self.run_one_item(qitem)
+            self.run_one_item(qitem, i)
             tasks_queue.task_done()
 
     def enqueue(self, query_samples):
@@ -517,12 +527,12 @@ def main():
     count = ds.get_item_count()
 
     # warmup
-    ds.load_query_samples([0])
-    for _ in range(5):
-        img, lab = ds.get_samples([0])
-        backend.allocate_buffers(img) # function added here to allocate cma buffer to be used by the accelerator        
-        pred = backend.predict({backend.inputs[0]: img})
-    ds.unload_query_samples(None)
+    # ds.load_query_samples([0])
+    # for _ in range(5):
+    #     img, lab = ds.get_samples([0])
+    #     backend.allocate_buffers(img) # function added here to allocate cma buffer to be used by the accelerator        
+    #     pred = backend.predict({backend.inputs[0]: img})
+    # ds.unload_query_samples(None)
 
     scenario = SCENARIO_MAP[args.scenario]
     runner_map = {

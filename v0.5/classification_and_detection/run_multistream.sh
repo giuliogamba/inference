@@ -2,16 +2,22 @@
 
 source ./run_common.sh
 
+
+BS=64
+# because duration is 60s and 50ms is the max latency (60s / 0.05s = 1200 queries) and max queries are 1024
+COUNT=$(( $BS*1024 )) 
+SPQ=$BS
 common_opt="--config ../mlperf.conf"
 dataset="--dataset-path $DATA_DIR"
-OUTPUT_DIR=`pwd`/output/$name
+OUTPUT_DIR=`pwd`/output_MultiStream_BATCH-SIZE_${BS}_COUNT_${COUNT}/$name
 if [ ! -d $OUTPUT_DIR ]; then
     mkdir -p $OUTPUT_DIR
 fi
 
 # command for resnet50 SingleStream
 python3 python/main.py --profile $profile $common_opt --model $model_path $dataset \
-    --output $OUTPUT_DIR $EXTRA_OPS --scenario SingleStream --accuracy $@
+    --output $OUTPUT_DIR $EXTRA_OPS --scenario MultiStream --accuracy --count $COUNT \
+    --max-batchsize $BS --samples-per-query $SPQ $@
 
 # python3 -m cProfile -o temp.cprof python/main.py --profile $profile $common_opt --model $model_path $dataset \
 #     --output $OUTPUT_DIR $EXTRA_OPS --scenario SingleStream --threads 4 --count 10000 --max-batchsize 10000 --accuracy $@

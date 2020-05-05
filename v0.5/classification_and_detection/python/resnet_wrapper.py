@@ -36,9 +36,10 @@ __copyright__ = "Copyright 2020, Xilinx"
 __email__ = "{ussamaz, lucianp}@xilinx.com"
 
 import os
+import time
+import threading
 import numpy as np
 from pynq import Overlay, PL, allocate
-
 
 class resnet_Wrapper():
     def __init__(self, network, params_path=None, bitstream_path=None, download_bitstream=True):
@@ -52,27 +53,43 @@ class resnet_Wrapper():
         wfile = wfile + "/fcweights.csv"
         print("Loading fc weights...")
         fcweights = np.genfromtxt(wfile, delimiter=',', dtype=np.int8)
-        self.fcbuf = allocate((1000,2048), dtype=np.int8, target=self.overlay.bank0)
+        np.save("fcweights.npy", fcweights)
+        self.fcbuf = allocate((1000,2048), dtype=np.int8, target=self.overlay.PLRAM0)
         #csv reader erroneously adds one extra element to the end, so remove, then reshape
         fcweights = fcweights[:-1].reshape(1000,2048)
         self.fcbuf[:] = fcweights
         self.fcbuf.flush()
-        self.accel_input_buffer = None
-        self.accel_output_buffer = None
+        self.accel_input_buffer = []
+        self.accel_output_buffer = []
         self.psl = 1
-
-    def inference(self, imgs):
-        # transfer to accelerator
-        self.accel_input_buffer[:] = imgs
-        self.accel_input_buffer.flush()     
+        self.lock = threading.Lock()
+        self.batch_size = None
+    
+    def inference(self, idx): 
         # do inference
-        self.accelerator.call(self.accel_input_buffer, self.accel_output_buffer, self.fcbuf, imgs.shape[0])
+        self.lock.acquire()
+        self.accelerator.call(self.accel_input_buffer[idx], self.accel_output_buffer[idx], self.fcbuf, self.batch_size)
+        self.lock.release()
         # get results
-        self.accel_output_buffer.invalidate()
-        results = np.copy(self.accel_output_buffer)
+        self.accel_output_buffer[idx].invalidate()
+        results = np.copy(self.accel_output_buffer[idx])
         return results
 
     def allocate_io_buffers(self, data):
         self.accel_input_buffer = allocate(shape=data.shape, dtype=np.uint8, target=self.overlay.bank0)
         # returns top 5 classes
         self.accel_output_buffer = allocate(shape=(data.shape[0]*self.psl, 5), dtype=np.uint32, target=self.overlay.bank0)
+
+    def init_cma_buffers(self, count, shape):
+        self.batch_size = shape[0]
+        for i in range(count):
+            self.accel_input_buffer += [allocate(shape=shape, dtype=np.uint8, target=self.overlay.bank0)]
+            self.accel_output_buffer += [allocate(shape=(self.batch_size*self.psl, 5), dtype=np.uint32, target=self.overlay.bank0)]
+
+    def transfer_buffer(self, data, idx):
+        # print(idx)
+        self.accel_input_buffer[idx][:] = data
+        self.accel_input_buffer[idx].flush()
+
+
+

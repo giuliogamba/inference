@@ -71,20 +71,13 @@ class BackendPynq(backend.Backend):
         return self
 
 
-    def allocate_buffers(self, data):
-        self.cleanup()
-        self.model.allocate_io_buffers(data)
-        # self.model.bbj.in_V_1 = data.physical_address & 0xffffffff
-        # self.model.bbj.in_V_2 = (data.physical_address >> 32) & 0xffffffff
-        # self.model.bbj.numReps = data.shape[0]
+    def transfer_buffer(self, data, idx):
+        self.model.transfer_buffer(data, idx)
 
-    def cleanup(self):
-        del self.model.accel_input_buffer
-        del self.model.accel_output_buffer
+    def init_cma_buffers(self, count, shape):
+        self.model.init_cma_buffers(count, shape)
 
-    def __del__(self):
-        self.cleanup()
 
-    def predict(self, feed):
-        output = self.model.inference(feed["input"])           
+    def predict(self, i):
+        output = self.model.inference(i)           
         return output
