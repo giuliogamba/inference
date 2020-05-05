@@ -59,7 +59,7 @@ class MNIST(dataset.Dataset):
         self.use_cache = use_cache
         self.pre_process = pre_process
         self.classes = 10
-        self.np_data_type = np.float64
+        self.np_data_type = np.uint64
         start = time.time()
         images, labels = self.load_mnist_test_set(self.data_path, self.count)
         images = self.pre_process(images)

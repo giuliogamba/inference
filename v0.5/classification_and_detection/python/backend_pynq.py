@@ -70,7 +70,6 @@ class BackendPynq(backend.Backend):
             self.model = resnet_Wrapper(network=name, bitstream_path=model_path)
         return self
 
-
     def transfer_buffer(self, data, idx):
         self.model.transfer_buffer(data, idx)
 
@@ -79,5 +78,5 @@ class BackendPynq(backend.Backend):
 
 
     def predict(self, i):
-        output = self.model.inference(i)           
+        output = self.model.inference(i)
         return output
