@@ -42,6 +42,7 @@ TestSettingsInternal::TestSettingsInternal(
       schedule_rng_seed(requested.schedule_rng_seed),
       accuracy_log_rng_seed(requested.accuracy_log_rng_seed),
       accuracy_log_probability(requested.accuracy_log_probability),
+      accuracy_log_sampling_target(requested.accuracy_log_sampling_target),
       print_timestamps(requested.print_timestamps),
       performance_issue_unique(requested.performance_issue_unique),
       performance_issue_same(requested.performance_issue_same),
@@ -79,8 +80,10 @@ TestSettingsInternal::TestSettingsInternal(
       if (requested.server_target_qps >= 0.0) {
         target_qps = requested.server_target_qps;
       } else {
-        LogDetail([server_target_qps = requested.server_target_qps,
-                   target_qps = target_qps](AsyncDetail &detail) {
+        LogDetail([
+          server_target_qps = requested.server_target_qps,
+          target_qps = target_qps
+        ](AsyncDetail & detail) {
           detail.Error("Invalid value for server_target_qps requested.",
                        "requested", server_target_qps, "using", target_qps);
         });
@@ -94,8 +97,10 @@ TestSettingsInternal::TestSettingsInternal(
       if (requested.offline_expected_qps >= 0.0) {
         target_qps = requested.offline_expected_qps;
       } else {
-        LogDetail([offline_expected_qps = requested.offline_expected_qps,
-                   target_qps = target_qps](AsyncDetail &detail) {
+        LogDetail([
+          offline_expected_qps = requested.offline_expected_qps,
+          target_qps = target_qps
+        ](AsyncDetail & detail) {
           detail.Error("Invalid value for offline_expected_qps requested.",
                        "requested", offline_expected_qps, "using", target_qps);
         });
@@ -123,12 +128,12 @@ TestSettingsInternal::TestSettingsInternal(
     // to take longer than than the minimum test duration required by the
     // MLPerf spec.
     constexpr double kSlack = 1.1;
-    int target_sample_count =
+    uint64_t target_sample_count =
         kSlack * DurationToSeconds(target_duration) * target_qps;
     samples_per_query =
         (requested.performance_issue_unique || requested.performance_issue_same)
             ? performance_sample_count
-            : std::max<int>(min_query_count, target_sample_count);
+            : std::max<uint64_t>(min_query_count, target_sample_count);
     min_query_count = 1;
     target_duration = std::chrono::milliseconds(0);
   }
@@ -138,22 +143,23 @@ TestSettingsInternal::TestSettingsInternal(
   // Validate TestSettings
   if (requested.performance_issue_same &&
       (requested.performance_issue_same_index >= performance_sample_count)) {
-    LogDetail(
-        [performance_issue_same_index = requested.performance_issue_same_index,
-         performance_sample_count =
-             performance_sample_count](AsyncDetail &detail) {
-          detail.Error(
-              "Sample Idx to be repeated in performance_issue_same mode"
-              " cannot be greater than loaded performance_sample_count.",
-              "performance_issue_same_index", performance_issue_same_index,
-              "performance_sample_count", performance_sample_count);
-        });
+    LogDetail([
+      performance_issue_same_index = requested.performance_issue_same_index,
+      performance_sample_count = performance_sample_count
+    ](AsyncDetail & detail) {
+      detail.Error(
+          "Sample Idx to be repeated in performance_issue_same mode"
+          " cannot be greater than loaded performance_sample_count.",
+          "performance_issue_same_index", performance_issue_same_index,
+          "performance_sample_count", performance_sample_count);
+    });
   }
 
   if (requested.performance_issue_unique && requested.performance_issue_same) {
-    LogDetail([performance_issue_unique = requested.performance_issue_unique,
-               performance_issue_same =
-                   requested.performance_issue_same](AsyncDetail &detail) {
+    LogDetail([
+      performance_issue_unique = requested.performance_issue_unique,
+      performance_issue_same = requested.performance_issue_same
+    ](AsyncDetail & detail) {
       detail.Error(
           "Performance_issue_unique and performance_issue_same, both"
           " cannot be true at the same time.",
@@ -233,6 +239,8 @@ void LogRequestedTestSettings(const TestSettings &s) {
         detail("server_find_peak_qps_boundary_step_size : ",
                s.server_find_peak_qps_boundary_step_size);
         detail("server_max_async_queries : ", s.server_max_async_queries);
+        detail("server_num_issue_query_threads : ",
+               s.server_num_issue_query_threads);
         break;
       case TestScenario::Offline:
         detail("offline_expected_qps : ", s.offline_expected_qps);
@@ -249,6 +257,7 @@ void LogRequestedTestSettings(const TestSettings &s) {
     detail("schedule_rng_seed : ", s.schedule_rng_seed);
     detail("accuracy_log_rng_seed : ", s.accuracy_log_rng_seed);
     detail("accuracy_log_probability : ", s.accuracy_log_probability);
+    detail("accuracy_log_sampling_target : ", s.accuracy_log_sampling_target);
     detail("print_timestamps : ", s.print_timestamps);
     detail("performance_issue_unique : ", s.performance_issue_unique);
     detail("performance_issue_same : ", s.performance_issue_same);
@@ -260,7 +269,7 @@ void LogRequestedTestSettings(const TestSettings &s) {
 }
 
 void TestSettingsInternal::LogEffectiveSettings() const {
-  LogDetail([s = *this](AsyncDetail &detail) {
+  LogDetail([s = *this](AsyncDetail & detail) {
     detail("");
     detail("Effective Settings:");
 
@@ -283,6 +292,7 @@ void TestSettingsInternal::LogEffectiveSettings() const {
     detail("schedule_rng_seed : ", s.schedule_rng_seed);
     detail("accuracy_log_rng_seed : ", s.accuracy_log_rng_seed);
     detail("accuracy_log_probability : ", s.accuracy_log_probability);
+    detail("accuracy_log_sampling_target : ", s.accuracy_log_sampling_target);
     detail("print_timestamps : ", s.print_timestamps);
     detail("performance_issue_unique : ", s.performance_issue_unique);
     detail("performance_issue_same : ", s.performance_issue_same);
@@ -310,6 +320,7 @@ void TestSettingsInternal::LogSummary(AsyncSummary &summary) const {
   summary("schedule_rng_seed : ", schedule_rng_seed);
   summary("accuracy_log_rng_seed : ", accuracy_log_rng_seed);
   summary("accuracy_log_probability : ", accuracy_log_probability);
+  summary("accuracy_log_sampling_target : ", accuracy_log_sampling_target);
   summary("print_timestamps : ", print_timestamps);
   summary("performance_issue_unique : ", performance_issue_unique);
   summary("performance_issue_same : ", performance_issue_same);
@@ -358,7 +369,8 @@ int TestSettings::FromConfig(const std::string &path, const std::string &model,
     }
     // if we get here, found will be set
     if (val_l) {
-      *val_l = strtoull(found.c_str(), nullptr, 0) * static_cast<uint64_t>(multiplier);
+      *val_l = strtoull(found.c_str(), nullptr, 0) *
+               static_cast<uint64_t>(multiplier);
     }
     if (val_d) *val_d = strtod(found.c_str(), nullptr) * multiplier;
     return true;
@@ -370,7 +382,7 @@ int TestSettings::FromConfig(const std::string &path, const std::string &model,
   int line_nr = 0;
   int errors = 0;
   if (!fss.is_open()) {
-    LogDetail([p = path](AsyncDetail &detail) {
+    LogDetail([p = path](AsyncDetail & detail) {
       detail.Error("can't open file ", p);
     });
     return -ENOENT;
@@ -400,14 +412,14 @@ int TestSettings::FromConfig(const std::string &path, const std::string &model,
           continue;
         }
         errors++;
-        LogDetail([l = line_nr](AsyncDetail &detail) {
+        LogDetail([l = line_nr](AsyncDetail & detail) {
           detail.Error("value needs to be integer or double, line=", l);
         });
         break;
       }
       if (looking_for == 1 && s != "=") {
         errors++;
-        LogDetail([l = line_nr](AsyncDetail &detail) {
+        LogDetail([l = line_nr](AsyncDetail & detail) {
           detail.Error("expected 'key=value', line=", l);
         });
         break;
@@ -454,6 +466,8 @@ int TestSettings::FromConfig(const std::string &path, const std::string &model,
            nullptr);
   lookupkv(model, scenario, "accuracy_log_probability", nullptr,
            &accuracy_log_probability, 0.01);
+  lookupkv(model, scenario, "accuracy_log_sampling_target",
+           &accuracy_log_sampling_target, nullptr);
   if (lookupkv(model, scenario, "print_timestamps", &val, nullptr))
     print_timestamps = (val == 0) ? false : true;
   if (lookupkv(model, scenario, "performance_issue_unique", &val, nullptr))

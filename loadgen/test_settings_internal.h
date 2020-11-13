@@ -51,7 +51,7 @@ struct TestSettingsInternal {
   const TestScenario scenario;  // Copied here for convenience.
   const TestMode mode;          // Copied here for convenience.
 
-  int samples_per_query;
+  uint64_t samples_per_query;
   double target_qps;
   std::chrono::nanoseconds target_latency{0};
   double target_latency_percentile;  // Single, multistream, and server modes.
@@ -74,6 +74,7 @@ struct TestSettingsInternal {
   uint64_t schedule_rng_seed;
   uint64_t accuracy_log_rng_seed;
   double accuracy_log_probability;
+  uint64_t accuracy_log_sampling_target;
   bool print_timestamps;
   bool performance_issue_unique;
   bool performance_issue_same;
